@@ -12,6 +12,7 @@ import com.banking.Transaction.model.TransactionRequest;
 import com.banking.Transaction.model.TransactionResponseDTO;
 import com.banking.Transaction.service.TransactionService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -21,10 +22,10 @@ public class TransactionController {
 
     private final TransactionService transactionService;
     private final AccountClient accountClient;
-
+    
     @PostMapping
     public ResponseEntity<TransactionResponseDTO> createTransaction(
-            @RequestBody TransactionRequest request) {
+            @Valid @RequestBody TransactionRequest request) {
 
         TransactionResponseDTO response =
                 transactionService.createTransaction(request);
