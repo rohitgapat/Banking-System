@@ -1,74 +1,31 @@
 package com.banking.Transaction.client;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import com.banking.Transaction.exception.AccountOperationException;
+import com.banking.Transaction.config.AccountFeignConfig;
 import com.banking.Transaction.model.AccountResponse;
 
-@Component
-public class AccountClient {
+@FeignClient(
+        name = "account-service",
+        configuration = AccountFeignConfig.class
+)
+public interface AccountClient {
 
-	private final RestClient restClient;
+    @GetMapping("/accounts/number/{accountNumber}")
+    AccountResponse getAccount(
+            @PathVariable String accountNumber);
 
-	public AccountClient(
-			RestClient.Builder builder,
-			@Value("${account.service.url}") String accountServiceUrl,
-			@Value("${account.service.username}") String username,
-			@Value("${account.service.password}") String password) {
+    @PatchMapping("/accounts/{accountNumber}/deposit")
+    AccountResponse deposit(
+            @PathVariable String accountNumber,
+            @RequestParam Double amount);
 
-		this.restClient = builder
-				.baseUrl(accountServiceUrl)
-				.defaultHeaders(headers ->
-				headers.setBasicAuth(username, password))
-				.build();
-	}
-
-	public AccountResponse getAccount(String accountNumber) {
-
-		return restClient.get()
-				.uri("/accounts/number/{accountNumber}", accountNumber)
-				.retrieve()
-				.body(AccountResponse.class);
-	}
-
-	public AccountResponse deposit(String accountNumber, Double amount) {
-
-		try {
-
-			return restClient.patch()
-					.uri(uriBuilder -> uriBuilder
-							.path("/accounts/{accountNumber}/deposit")
-							.queryParam("amount", amount)
-							.build(accountNumber))
-					.retrieve()
-					.body(AccountResponse.class);
-
-		} catch (HttpClientErrorException ex) {
-
-			throw new AccountOperationException(
-					ex.getResponseBodyAsString());
-		}
-	}
-
-	public AccountResponse withdraw(String accountNumber, Double amount) {
-
-		try {
-
-			return restClient.patch()
-					.uri(uriBuilder -> uriBuilder
-							.path("/accounts/{accountNumber}/withdraw")
-							.queryParam("amount", amount)
-							.build(accountNumber))
-					.retrieve()
-					.body(AccountResponse.class);
-
-		} catch (HttpClientErrorException ex) {
-
-			throw new AccountOperationException(
-					ex.getResponseBodyAsString());
-		}
-	}
+    @PatchMapping("/accounts/{accountNumber}/withdraw")
+    AccountResponse withdraw(
+            @PathVariable String accountNumber,
+            @RequestParam Double amount);
 }
