@@ -8,12 +8,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(AccountOperationException.class)
-    public ResponseEntity<String> handleAccountOperation(
-            AccountOperationException ex) {
+	@ExceptionHandler(AccountOperationException.class)
+	public ResponseEntity<String> handleAccountOperation(
+	        AccountOperationException ex) {
 
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ex.getMessage());
-    }
+	    return ResponseEntity
+	            .status(HttpStatus.SERVICE_UNAVAILABLE)
+	            .body(ex.getMessage());
+	}
 }

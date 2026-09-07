@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository transactionRepository;
-    private final AccountClient accountClient;
+    private final AccountServiceCircuitBreaker accountServiceCircuitBreaker;
 
     @Override
     public TransactionResponseDTO createTransaction(TransactionRequest request) {
@@ -31,15 +31,15 @@ public class TransactionServiceImpl implements TransactionService {
 
         if (request.getTransactionType() == TransactionType.DEPOSIT) {
 
-            account = accountClient.deposit(
-                    request.getAccountNumber(),
-                    request.getAmount());
+        	account = accountServiceCircuitBreaker.deposit(
+        	        request.getAccountNumber(),
+        	        request.getAmount());
 
         } else if (request.getTransactionType() == TransactionType.WITHDRAW) {
 
-            account = accountClient.withdraw(
-                    request.getAccountNumber(),
-                    request.getAmount());
+        	account = accountServiceCircuitBreaker.withdraw(
+        	        request.getAccountNumber(),
+        	        request.getAmount());
 
         } else {
 
