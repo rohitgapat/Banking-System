@@ -10,22 +10,21 @@ import com.banking.Transaction.config.AccountFeignConfig;
 import com.banking.Transaction.model.AccountResponse;
 
 @FeignClient(
-        name = "account-service",
-        configuration = AccountFeignConfig.class
-)
+		name = "account-service",
+		configuration = AccountFeignConfig.class
+		)
 public interface AccountClient {
 
-    @GetMapping("/accounts/number/{accountNumber}")
-    AccountResponse getAccount(
-            @PathVariable String accountNumber);
+	@GetMapping("/accounts/number/{accountNumber}")
+	AccountResponse getAccount(@PathVariable String accountNumber);
 
-    @PatchMapping("/accounts/{accountNumber}/deposit")
-    AccountResponse deposit(
-            @PathVariable String accountNumber,
-            @RequestParam Double amount);
+	@PatchMapping("/accounts/{accountNumber}/deposit")
+	AccountResponse deposit(
+			@PathVariable String accountNumber,
+			@RequestParam Double amount);
 
-    @PatchMapping("/accounts/{accountNumber}/withdraw")
-    AccountResponse withdraw(
-            @PathVariable String accountNumber,
-            @RequestParam Double amount);
+	@PatchMapping("/accounts/{accountNumber}/withdraw")
+	AccountResponse withdraw(
+			@PathVariable String accountNumber,
+			@RequestParam Double amount);
 }
