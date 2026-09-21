@@ -2,9 +2,8 @@ package com.banking.Transaction.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import feign.RequestInterceptor;
 
@@ -16,17 +15,17 @@ public class AccountFeignConfig {
 
         return requestTemplate -> {
 
-            Authentication authentication =
-                    SecurityContextHolder.getContext().getAuthentication();
+            ServletRequestAttributes attributes =
+                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 
-            if (authentication instanceof JwtAuthenticationToken jwtAuthentication) {
+            if (attributes != null) {
 
-                String token = jwtAuthentication.getToken().getTokenValue();
+                String authorization =
+                        attributes.getRequest().getHeader("Authorization");
 
-                requestTemplate.header(
-                        "Authorization",
-                        "Bearer " + token
-                );
+                if (authorization != null && !authorization.isBlank()) {
+                    requestTemplate.header("Authorization", authorization);
+                }
             }
         };
     }

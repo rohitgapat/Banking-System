@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import com.banking.Transaction.client.AccountClient;
 import com.banking.Transaction.exception.AccountOperationException;
 import com.banking.Transaction.model.AccountResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,9 @@ import lombok.RequiredArgsConstructor;
 public class AccountServiceCircuitBreaker {
 
     private final AccountClient accountClient;
+    
+    private static final Logger log =
+            LoggerFactory.getLogger(AccountServiceCircuitBreaker.class);
     
 
     @CircuitBreaker(
@@ -39,8 +44,13 @@ public class AccountServiceCircuitBreaker {
             Double amount,
             Throwable ex) {
 
+        log.error("Deposit call to Account Service failed", ex);
+
         throw new AccountOperationException(
-                "Account Service is currently unavailable. Please try again later."
+                "Account Service call failed: "
+                + ex.getClass().getSimpleName()
+                + " - "
+                + ex.getMessage()
         );
     }
 
@@ -49,8 +59,13 @@ public class AccountServiceCircuitBreaker {
             Double amount,
             Throwable ex) {
 
+        log.error("Withdraw call to Account Service failed", ex);
+
         throw new AccountOperationException(
-                "Account Service is currently unavailable. Please try again later."
+                "Account Service call failed: "
+                + ex.getClass().getSimpleName()
+                + " - "
+                + ex.getMessage()
         );
     }
 }
