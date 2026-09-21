@@ -12,6 +12,7 @@ import com.banking.Transaction.enums.TransactionType;
 import com.banking.Transaction.model.AccountResponse;
 import com.banking.Transaction.model.TransactionRequest;
 import com.banking.Transaction.model.TransactionResponseDTO;
+import com.banking.Transaction.model.TransferRequest;
 import com.banking.Transaction.repository.TransactionRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -92,14 +93,47 @@ public class TransactionServiceImpl implements TransactionService {
                 .map(this::convertToDTO)
                 .toList();
     }
+    
+    @Override
+    public TransactionResponseDTO transfer(TransferRequest request) {
+
+        // 1. Withdraw money from sender account
+        accountServiceCircuitBreaker.withdraw(
+                request.getFromAccountNumber(),
+                request.getAmount()
+        );
+
+        // 2. Deposit money into receiver account
+        accountServiceCircuitBreaker.deposit(
+                request.getToAccountNumber(),
+                request.getAmount()
+        );
+
+        // 3. Save transfer transaction
+        Transaction transaction = Transaction.builder()
+                .accountNumber(request.getFromAccountNumber())
+                .fromAccountNumber(request.getFromAccountNumber())
+                .toAccountNumber(request.getToAccountNumber())
+                .amount(request.getAmount())
+                .transactionType(TransactionType.TRANSFER)
+                .transactionDate(LocalDateTime.now())
+                .status(TransactionStatus.SUCCESS)
+                .build();
+
+        Transaction savedTransaction =
+                transactionRepository.save(transaction);
+
+        return convertToDTO(savedTransaction);
+    }
 
     // Common conversion method
-    private TransactionResponseDTO convertToDTO(
-            Transaction transaction) {
+    private TransactionResponseDTO convertToDTO(Transaction transaction) {
 
         return TransactionResponseDTO.builder()
                 .id(transaction.getId())
                 .accountNumber(transaction.getAccountNumber())
+                .fromAccountNumber(transaction.getFromAccountNumber())
+                .toAccountNumber(transaction.getToAccountNumber())
                 .amount(transaction.getAmount())
                 .transactionType(transaction.getTransactionType())
                 .transactionDate(transaction.getTransactionDate())

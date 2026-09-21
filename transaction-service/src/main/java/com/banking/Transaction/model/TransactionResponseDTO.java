@@ -25,6 +25,10 @@ public class TransactionResponseDTO {
     private Double amount;
 
     private TransactionType transactionType;
+    
+    private String fromAccountNumber;
+
+    private String toAccountNumber;
 
     private LocalDateTime transactionDate;
 

@@ -26,6 +26,10 @@ public class Transaction {
 
     @Column(nullable = false)
     private Double amount;
+    
+    private String fromAccountNumber;
+
+    private String toAccountNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

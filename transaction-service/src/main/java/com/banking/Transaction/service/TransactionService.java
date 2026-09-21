@@ -2,6 +2,7 @@ package com.banking.Transaction.service;
 
 import com.banking.Transaction.model.TransactionRequest;
 import com.banking.Transaction.model.TransactionResponseDTO;
+import com.banking.Transaction.model.TransferRequest;
 
 import java.util.List;
 
@@ -14,4 +15,6 @@ public interface TransactionService {
     List<TransactionResponseDTO> getAllTransactions();
 
     List<TransactionResponseDTO> getTransactionsByAccount(String accountNumber);
+    
+    TransactionResponseDTO transfer(TransferRequest request);
 }
