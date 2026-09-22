@@ -16,4 +16,13 @@ public class GlobalExceptionHandler {
 	            .status(HttpStatus.SERVICE_UNAVAILABLE)
 	            .body(ex.getMessage());
 	}
+	
+	@ExceptionHandler(TransferFailedException.class)
+	public ResponseEntity<String> handleTransferFailed(
+	        TransferFailedException ex) {
+
+	    return ResponseEntity
+	            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+	            .body(ex.getMessage());
+	}
 }

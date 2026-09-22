@@ -5,10 +5,10 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.banking.Transaction.client.AccountClient;
 import com.banking.Transaction.entity.Transaction;
 import com.banking.Transaction.enums.TransactionStatus;
 import com.banking.Transaction.enums.TransactionType;
+import com.banking.Transaction.exception.TransferFailedException;
 import com.banking.Transaction.model.AccountResponse;
 import com.banking.Transaction.model.TransactionRequest;
 import com.banking.Transaction.model.TransactionResponseDTO;
@@ -97,33 +97,85 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public TransactionResponseDTO transfer(TransferRequest request) {
 
-        // 1. Withdraw money from sender account
-        accountServiceCircuitBreaker.withdraw(
-                request.getFromAccountNumber(),
-                request.getAmount()
-        );
+        boolean senderDebited = false;
+        boolean receiverCredited = false;
 
-        // 2. Deposit money into receiver account
-        accountServiceCircuitBreaker.deposit(
-                request.getToAccountNumber(),
-                request.getAmount()
-        );
+        try {
 
-        // 3. Save transfer transaction
-        Transaction transaction = Transaction.builder()
-                .accountNumber(request.getFromAccountNumber())
-                .fromAccountNumber(request.getFromAccountNumber())
-                .toAccountNumber(request.getToAccountNumber())
-                .amount(request.getAmount())
-                .transactionType(TransactionType.TRANSFER)
-                .transactionDate(LocalDateTime.now())
-                .status(TransactionStatus.SUCCESS)
-                .build();
+            // 1. Withdraw money from sender
+            accountServiceCircuitBreaker.withdraw(
+                    request.getFromAccountNumber(),
+                    request.getAmount()
+            );
 
-        Transaction savedTransaction =
-                transactionRepository.save(transaction);
+            senderDebited = true;
 
-        return convertToDTO(savedTransaction);
+            // 2. Deposit money into receiver
+            accountServiceCircuitBreaker.deposit(
+                    request.getToAccountNumber(),
+                    request.getAmount()
+            );
+
+            receiverCredited = true;
+
+            // 3. Save transfer transaction
+            Transaction transaction = Transaction.builder()
+                    .accountNumber(request.getFromAccountNumber())
+                    .fromAccountNumber(request.getFromAccountNumber())
+                    .toAccountNumber(request.getToAccountNumber())
+                    .amount(request.getAmount())
+                    .transactionType(TransactionType.TRANSFER)
+                    .transactionDate(LocalDateTime.now())
+                    .status(TransactionStatus.SUCCESS)
+                    .build();
+
+            Transaction savedTransaction =
+                    transactionRepository.save(transaction);
+
+            return convertToDTO(savedTransaction);
+
+        } 
+        
+        catch (Exception ex) {
+
+            // Rollback receiver credit
+            if (receiverCredited) {
+                try {
+                    accountServiceCircuitBreaker.withdraw(
+                            request.getToAccountNumber(),
+                            request.getAmount()
+                    );
+                } 
+                
+                catch (Exception rollbackEx) {
+                    System.err.println(
+                            "Receiver rollback failed: "
+                            + rollbackEx.getMessage()
+                    );
+                }
+            }
+
+            // Rollback sender debit
+            if (senderDebited) {
+                try {
+                    accountServiceCircuitBreaker.deposit(
+                            request.getFromAccountNumber(),
+                            request.getAmount()
+                    );
+                } 
+                
+                catch (Exception rollbackEx) {
+                    System.err.println(
+                            "Sender rollback failed: "
+                            + rollbackEx.getMessage()
+                    );
+                }
+            }
+
+            throw new TransferFailedException(
+                    "Money transfer failed and rollback was attempted",ex
+            );
+        }
     }
 
     // Common conversion method
