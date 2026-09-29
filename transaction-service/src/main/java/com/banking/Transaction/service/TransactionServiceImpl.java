@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import com.banking.Transaction.entity.Transaction;
 import com.banking.Transaction.enums.TransactionStatus;
 import com.banking.Transaction.enums.TransactionType;
+import com.banking.Transaction.exception.InvalidTransactionTypeException;
+import com.banking.Transaction.exception.TransactionNotFoundException;
 import com.banking.Transaction.exception.TransferFailedException;
 import com.banking.Transaction.model.AccountResponse;
 import com.banking.Transaction.model.TransactionRequest;
@@ -41,17 +43,22 @@ public class TransactionServiceImpl implements TransactionService {
         	        request.getAccountNumber(),
         	        request.getAmount());
 
-        } else if (request.getTransactionType() == TransactionType.WITHDRAW) {
+        } 
+        
+        else if (request.getTransactionType() == TransactionType.WITHDRAW) {
 
         	account = accountServiceCircuitBreaker.withdraw(
         	        request.getAccountNumber(),
         	        request.getAmount());
 
-        } else {
-
-            throw new RuntimeException("Invalid transaction type");
+        } 
+        
+        else {
+            throw new InvalidTransactionTypeException(
+                    "Invalid transaction type: "
+                            + request.getTransactionType()
+            );
         }
-
         // 2. Create transaction object
         Transaction transaction = Transaction.builder()
                 .accountNumber(request.getAccountNumber())
@@ -74,7 +81,9 @@ public class TransactionServiceImpl implements TransactionService {
 
         Transaction transaction = transactionRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Transaction not found"));
+                        new TransactionNotFoundException(
+                                "Transaction not found with id: " + id
+                        ));
 
         return convertToDTO(transaction);
     }
