@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,12 +16,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.banking.Transaction.entity.Transaction;
 import com.banking.Transaction.enums.TransactionStatus;
 import com.banking.Transaction.enums.TransactionType;
+import com.banking.Transaction.exception.InvalidTransactionTypeException;
+import com.banking.Transaction.exception.TransactionNotFoundException;
 import com.banking.Transaction.exception.TransferFailedException;
 import com.banking.Transaction.model.AccountResponse;
 import com.banking.Transaction.model.TransactionRequest;
 import com.banking.Transaction.model.TransactionResponseDTO;
 import com.banking.Transaction.model.TransferRequest;
 import com.banking.Transaction.repository.TransactionRepository;
+
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceImplTest {
@@ -323,5 +332,135 @@ class TransactionServiceImplTest {
         // FAILED transaction should be saved
         verify(transactionRepository)
                 .save(any(Transaction.class));
+    }
+    
+    @Test
+    void shouldGetTransactionByIdSuccessfully() {
+
+        Long transactionId = 1L;
+
+        Transaction transaction = Transaction.builder()
+                .id(transactionId)
+                .accountNumber("54765152133")
+                .amount(500.0)
+                .transactionType(TransactionType.DEPOSIT)
+                .transactionDate(LocalDateTime.now())
+                .status(TransactionStatus.SUCCESS)
+                .build();
+
+        when(transactionRepository.findById(transactionId))
+                .thenReturn(Optional.of(transaction));
+
+        TransactionResponseDTO response =
+                transactionService.getTransactionById(transactionId);
+
+        assertNotNull(response);
+        assertEquals(transactionId, response.getId());
+        assertEquals("54765152133", response.getAccountNumber());
+        assertEquals(500.0, response.getAmount());
+        assertEquals(
+                TransactionType.DEPOSIT,
+                response.getTransactionType()
+        );
+        assertEquals(
+                TransactionStatus.SUCCESS,
+                response.getStatus()
+        );
+
+        verify(transactionRepository)
+                .findById(transactionId);
+    }
+    
+    @Test
+    void shouldThrowExceptionWhenTransactionNotFound() {
+
+        Long transactionId = 999L;
+
+        when(transactionRepository.findById(transactionId))
+                .thenReturn(Optional.empty());
+
+        TransactionNotFoundException exception =
+                assertThrows(
+                        TransactionNotFoundException.class,
+                        () -> transactionService.getTransactionById(transactionId)
+                );
+
+        assertEquals(
+                "Transaction not found with id: 999",
+                exception.getMessage()
+        );
+
+        verify(transactionRepository)
+                .findById(transactionId);
+    }
+    
+    @Test
+    void shouldThrowExceptionForInvalidTransactionType() {
+
+        TransactionRequest request = TransactionRequest.builder()
+                .accountNumber("54765152133")
+                .amount(500.0)
+                .transactionType(null)
+                .build();
+
+        assertThrows(
+                InvalidTransactionTypeException.class,
+                () -> transactionService.createTransaction(request)
+        );
+
+        verifyNoInteractions(accountServiceCircuitBreaker);
+        verify(transactionRepository, never())
+                .save(any(Transaction.class));
+    }
+    
+    @Test
+    void shouldFailValidationWhenAccountNumberIsBlank() {
+
+        TransactionRequest request = TransactionRequest.builder()
+                .accountNumber("")
+                .amount(500.0)
+                .transactionType(TransactionType.DEPOSIT)
+                .build();
+
+        ValidatorFactory factory =
+                Validation.buildDefaultValidatorFactory();
+
+        Validator validator = factory.getValidator();
+
+        Set<ConstraintViolation<TransactionRequest>> violations =
+                validator.validate(request);
+
+        assertFalse(violations.isEmpty());
+
+        assertTrue(
+                violations.stream()
+                        .anyMatch(v ->
+                                v.getPropertyPath().toString()
+                                        .equals("accountNumber"))
+        );
+    }
+    
+    @Test
+    void shouldFailValidationWhenAmountIsZero() {
+
+        TransactionRequest request = TransactionRequest.builder()
+                .accountNumber("54765152133")
+                .amount(0.0)
+                .transactionType(TransactionType.DEPOSIT)
+                .build();
+
+        ValidatorFactory factory =
+                Validation.buildDefaultValidatorFactory();
+
+        Validator validator = factory.getValidator();
+
+        Set<ConstraintViolation<TransactionRequest>> violations =
+                validator.validate(request);
+
+        assertTrue(
+                violations.stream()
+                        .anyMatch(v ->
+                                v.getPropertyPath().toString().equals("amount"))
+        );
     }
 }
