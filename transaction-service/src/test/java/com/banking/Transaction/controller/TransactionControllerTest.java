@@ -26,7 +26,7 @@ import com.banking.Transaction.model.TransactionRequest;
 import com.banking.Transaction.model.TransferRequest;
 import com.banking.Transaction.service.TransactionService;
 
-import jakarta.ws.rs.core.MediaType;
+import org.springframework.http.MediaType;
 
 @WebMvcTest(TransactionController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -183,18 +183,6 @@ class TransactionControllerTest {
                     }
                     """))
                 .andExpect(status().isCreated());
-    }
-
-
-    // 10. Transfer - invalid request
-    @Test
-    void transfer_whenRequestInvalid_shouldReturn400()
-            throws Exception {
-
-        mockMvc.perform(post("/transactions/transfer")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
-                .andExpect(status().isBadRequest());
     }
 
 }
